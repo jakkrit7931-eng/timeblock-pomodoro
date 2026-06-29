@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1C2024">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>TimeBlock + Pomodoro</title>
+<style>
+  :root {
+    --ink: #1C2024;
+    --ink-soft: #5B6168;
+    --paper: #F1F1ED;
+    --card: #FFFFFF;
+    --line: #E4E3DC;
+    --focus: #1F6F5C;
+    --focus-soft: #E4EFEC;
+    --rest: #E08C2B;
+    --rest-soft: #FBEEDD;
+    --danger: #B23B3B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #E9E9E4;
+    font-family: -apple-system, "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
+    color: var(--ink);
+    padding: 24px 12px 80px;
+  }
+  .app {
+    max-width: 420px;
+    margin: 0 auto;
+    background: var(--paper);
+    border-radius: 24px;
+    padding: 20px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .header h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .clock { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 13px; color: var(--ink-soft); }
+  .subbar { display: flex; gap: 8px; margin: 12px 0; }
+  .subbar button {
+    flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 12px;
+    padding: 8px; font-size: 12px; color: var(--ink-soft); cursor: pointer;
+  }
+  .subbar button:hover { border-color: var(--ink-soft); }
+  .add-btn {
+    width: 100%; border: none; background: var(--ink); color: var(--paper);
+    border-radius: 14px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .add-btn:hover { opacity: 0.9; }
+  .row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .time-col { width: 46px; flex-shrink: 0; text-align: right; padding-top: 10px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-soft); }
+  .card {
+    flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px;
+  }
+  .card.done { opacity: 0.5; }
+  .card.active { background: var(--focus-soft); border-color: #1F6F5C55; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .card-title { font-size: 14px; font-weight: 500; }
+  .card-title.strike { text-decoration: line-through; }
+  .icon-btns { display: flex; gap: 6px; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px; padding: 2px 4px; }
+  .icon-btn:hover { color: var(--ink); }
+  .tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .tag { font-size: 11px; background: var(--paper); color: var(--ink-soft); padding: 2px 8px; border-radius: 6px; }
+  .card.active .tag { background: var(--card); }
+  .details { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+  .timer-box { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 8px 10px; margin-top: 10px; }
+  .ring-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-time { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; }
+  .timer-meta { flex: 1; }
+  .timer-meta p { margin: 0; font-size: 11px; color: var(--ink-soft); }
+  .timer-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .timer-actions button { font-size: 11px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; }
+  .voice-note { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 12px; background: var(--rest-soft); border-radius: 12px; font-size: 12px; color: #7A4E14; }
+  .voice-note label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .empty { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 20px 0; }
+
+  .day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .day-nav-btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; width: 32px; height: 32px; font-size: 16px; cursor: pointer; color: var(--ink-soft); }
+  .day-nav-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+  .day-nav-label { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+
+  .week-day { margin-bottom: 14px; }
+  .week-day-head { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; cursor: pointer; }
+  .week-day.is-today .week-day-head { color: var(--focus); }
+  .week-row {
+    display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 7px 10px; margin-bottom: 4px; cursor: pointer; font-size: 12px; flex-wrap: wrap;
+  }
+  .week-live {
+    margin-left: auto; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600;
+    color: var(--focus); background: var(--focus-soft); padding: 2px 8px; border-radius: 6px;
+  }
+  .week-row:hover { border-color: var(--ink-soft); }
+  .week-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .week-time { font-family: ui-monospace, monospace; color: var(--ink-soft); flex-shrink: 0; }
+  .week-title { color: var(--ink); }
+  .week-empty { font-size: 11px; color: var(--ink-soft); margin: 0 0 4px 2px; }
+  .section-label { font-size: 12px; color: var(--ink-soft); margin: 16px 0 8px; font-weight: 500; }
+  .goal-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  .goal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .goal-title { font-size: 13px; font-weight: 500; }
+  .goal-pct { font-size: 13px; font-weight: 600; color: var(--focus); }
+  .goal-track { height: 6px; background: var(--paper); border-radius: 4px; overflow: hidden; }
+  .goal-fill { height: 100%; background: var(--focus); border-radius: 4px; transition: width 0.4s; }
+  .goal-meta { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+  .add-goal-btn {
+    width: 100%; border: 1px dashed var(--line); background: none; color: var(--ink-soft);
+    border-radius: 12px; padding: 8px; font-size: 12px; cursor: pointer; margin-bottom: 16px;
+  }
+  .add-goal-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none;
+    align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .modal { width: 100%; max-width: 360px; background: var(--card); border-radius: 20px; padding: 20px; }
+  .modal h2 { font-size: 15px; margin: 0 0 14px; font-weight: 600; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+    font-size: 13px; font-family: inherit; color: var(--ink); background: var(--paper);
+  }
+  .row2 { display: flex; gap: 8px; }
+  .row2 .field { flex: 1; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .mode-grid button {
+    border: 1px solid var(--line); background: var(--paper); border-radius: 10px;
+    padding: 8px; font-size: 12px; cursor: pointer; color: var(--ink);
+  }
+  .mode-grid button.picked { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .checkrow { display: flex; align-items: center; justify-content: space-between; background: var(--paper); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
+  .checkrow span { font-size: 13px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions button { flex: 1; border-radius: 10px; padding: 10px; font-size: 13px; cursor: pointer; }
+  .btn-secondary { background: var(--paper); border: 1px solid var(--line); }
+  .btn-primary { background: var(--ink); color: var(--paper); border: none; }
+
+  .mascot-walker {
+    position: fixed; left: 0; right: 0; bottom: 18px;
+    display: flex; justify-content: center; pointer-events: none; z-index: 60;
+  }
+  .mascot-inner {
+    display: flex; flex-direction: column; align-items: center;
+    transform: translateX(140vw);
+    transition: transform 1s cubic-bezier(.3,.7,.3,1);
+    pointer-events: auto;
+  }
+  .mascot-inner.no-anim { transition: none; }
+  .mascot-inner.pos-onstage { transform: translateX(0); }
+  .mascot-inner.pos-exit-left { transform: translateX(-140vw); transition-timing-function: cubic-bezier(.6,0,1,1); }
+
+  .speech-bubble {
+    width: 260px; background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 16px; margin-bottom: 8px; text-align: center;
+    opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s;
+  }
+  .speech-bubble.show { opacity: 1; transform: translateY(0); }
+  .mascot-eyebrow { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+  .mascot-msg { font-size: 14px; font-weight: 500; margin: 0 0 12px; line-height: 1.5; }
+  .mascot-actions { display: flex; gap: 8px; }
+  .mascot-actions button { flex: 1; border-radius: 10px; padding: 8px; font-size: 12px; cursor: pointer; }
+
+  .mascot-sprite { width: 64px; height: 86px; }
+  .mascot-sprite .mascot-body { transform-origin: center; }
+  .is-idle .mascot-body { animation: idleBob 1.6s ease-in-out infinite; }
+  .is-walking .mascot-body { animation: walkBob 0.4s ease-in-out infinite; }
+  @keyframes idleBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  @keyframes walkBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+  .is-walking #legL { animation: legSwingA 0.4s linear infinite; }
+  .is-walking #legR { animation: legSwingB 0.4s linear infinite; }
+  #legL, #legR { transform-box: fill-box; transform-origin: top center; }
+  @keyframes legSwingA { 0%, 100% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } }
+  @keyframes legSwingB { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
+  .is-idle #armR { animation: armWave 1s ease-in-out infinite; transform-box: fill-box; transform-origin: 0% 50%; }
+  @keyframes armWave { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(22deg); } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>time block</h1>
+    <span class="clock" id="clockNow">--:--:--</span>
+  </div>
+
+  <div class="day-nav">
+    <button id="prevDayBtn" class="day-nav-btn">‹</button>
+    <span id="dateLabel" class="day-nav-label">วันนี้</span>
+    <button id="nextDayBtn" class="day-nav-btn">›</button>
+  </div>
+  <button class="add-goal-btn" id="viewModeToggle" style="margin-bottom:14px;">ดูแบบสัปดาห์</button>
+
+  <div class="subbar">
+    <button id="notifBtn">เปิดแจ้งเตือนระบบ</button>
+    <button id="testBtn">ทดสอบตัวละคร</button>
+  </div>
+  <div class="subbar">
+    <button id="resetBtn" style="color: var(--danger);">ล้างข้อมูลทั้งหมด</button>
+    <button id="openSyncBtn">ซิงค์ข้ามอุปกรณ์</button>
+  </div>
+  <p id="syncStatus" class="goal-meta" style="margin: -4px 0 12px;">ใช้ข้อมูลแค่เครื่องนี้</p>
+
+  <button class="add-btn" id="openAddBtn">+ เพิ่ม time block</button>
+
+  <p class="section-label">เป้าหมาย</p>
+  <div id="goalsList"></div>
+  <button class="add-goal-btn" id="openGoalAddBtn">+ เพิ่มเป้าหมาย</button>
+
+  <p class="section-label">time block</p>
+  <div id="blocksList"></div>
+
+  <div class="voice-note">
+    <label>
+      <input type="checkbox" id="voiceToggle" checked>
+      พูดด้วยเสียง (Web Speech) ตอนแจ้งเตือน
+    </label>
+    <button id="openVoiceBtn" style="margin-left:auto; background:none; border:1px solid #7A4E1455; color:#7A4E14; border-radius:8px; padding:4px 10px; font-size:11px; cursor:pointer;">ตั้งค่าเสียง</button>
+  </div>
+</div>
+
+<!-- Add / edit block modal -->
+<div class="overlay" id="blockOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">time block ใหม่</h2>
+
+    <div class="field">
+      <label>ชื่องาน</label>
+      <input type="text" id="f_title" placeholder="เช่น เขียนรายงาน Q3">
+    </div>
+
+    <div class="field">
+      <label>วันที่</label>
+      <input type="date" id="f_date">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>เริ่ม</label>
+        <input type="time" id="f_start">
+      </div>
+      <div class="field">
+        <label>จบ</label>
+        <input type="time" id="f_end">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ผูกกับเป้าหมาย</label>
+      <select id="f_goalId"></select>
+    </div>
+
+    <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px;">โหมด pomodoro</label>
+    <div class="mode-grid" id="modeGrid">
+      <button type="button" data-mode="none">ไม่ใช้ pomodoro</button>
+      <button type="button" data-mode="classic">classic 25/5</button>
+      <button type="button" data-mode="deep">deep work 50/10</button>
+      <button type="button" data-mode="long">long focus 90/15</button>
+      <button type="button" data-mode="custom" style="grid-column: span 2;">กำหนดเอง</button>
+    </div>
+    <div class="row2" id="customRow" style="display:none; margin-bottom:12px;">
+      <div class="field">
+        <label>โฟกัส (นาที)</label>
+        <input type="number" id="f_customFocus" value="25" min="1">
+      </div>
+      <div class="field">
+        <label>พัก (นาที)</label>
+        <input type="number" id="f_customBreak" value="5" min="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>รายละเอียด / checklist</label>
+      <textarea id="f_details" rows="2" placeholder="สรุปสิ่งที่ต้องทำ"></textarea>
+    </div>
+
+    <div class="checkrow">
+      <span>แจ้งเตือนด้วยเสียง + ตัวละคร</span>
+      <input type="checkbox" id="f_notify" checked>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelBtn">ยกเลิก</button>
+      <button class="btn-primary" id="saveBtn">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / edit goal modal -->
+<div class="overlay" id="goalOverlay">
+  <div class="modal">
+    <h2 id="goalModalTitle">เป้าหมายใหม่</h2>
+    <div class="field">
+      <label>ชื่อเป้าหมาย</label>
+      <input type="text" id="g_title" placeholder="เช่น ปิดโปรเจกต์ Q3">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="goalCancelBtn">ยกเลิก</button>
+      <button class="btn-primary" id="goalSaveBtn">บันทึก</button>
+    </div>
+    <button class="add-goal-btn" id="goalDeleteBtn" style="margin-top:10px; color: var(--danger); display:none;">ลบเป้าหมายนี้</button>
+  </div>
+</div>
+
+<!-- Cross-device sync setup -->
+<div class="overlay" id="syncOverlay">
+  <div class="modal">
+    <h2>ซิงค์ข้อมูลข้ามอุปกรณ์</h2>
+    <p class="goal-meta" style="margin-bottom:14px;">
+      ใช้ Firebase ของคุณเอง (ฟรี) เป็นที่เก็บข้อมูลกลาง กรอกครั้งเดียว แล้วใส่ "รหัสซิงค์" เดียวกันในมือถือและคอม ข้อมูลจะอัปเดตให้กันอัตโนมัติ
+    </p>
+
+    <div class="field"><label>API Key</label><input type="text" id="cfg_apiKey"></div>
+    <div class="field"><label>Auth Domain</label><input type="text" id="cfg_authDomain"></div>
+    <div class="field"><label>Project ID</label><input type="text" id="cfg_projectId"></div>
+    <div class="field"><label>Storage Bucket</label><input type="text" id="cfg_storageBucket"></div>
+    <div class="field"><label>Messaging Sender ID</label><input type="text" id="cfg_messagingSenderId"></div>
+    <div class="field"><label>App ID</label><input type="text" id="cfg_appId"></div>
+    <div class="field">
+      <label>รหัสซิงค์ (ตั้งเองได้ ใช้รหัสเดียวกันทุกเครื่อง)</label>
+      <input type="text" id="cfg_syncCode" placeholder="เช่น ploy-timeblock-2026">
+    </div>
+
+    <div class="modal-actions" style="margin-bottom: 8px;">
+      <button class="btn-secondary" id="syncCancelBtn">ยกเลิก</button>
+      <button class="btn-primary" id="syncConnectBtn">เชื่อมต่อ</button>
+    </div>
+    <button class="add-goal-btn" id="syncDisconnectBtn" style="color: var(--danger); display:none;">เลิกซิงค์ (ใช้แค่เครื่องนี้)</button>
+  </div>
+</div>
+
+<!-- Voice settings -->
+<div class="overlay" id="voiceOverlay">
+  <div class="modal">
+    <h2>ตั้งค่าเสียง</h2>
+    <p class="goal-meta" style="margin-bottom:14px;">
+      เสียงมาจาก Web Speech API ของเบราว์เซอร์/เครื่องคุณ — เลือกได้แค่เสียงที่เครื่องมีอยู่แล้ว ไม่สามารถใช้เสียงของคนจริงคนใดคนหนึ่งโดยเฉพาะได้ แต่ปรับโทนให้ฟังดูอบอุ่นแบบ "น้า/ลุง" ได้ด้วยสองแถบด้านล่าง
+    </p>
+
+    <div class="field">
+      <label>เสียง</label>
+      <select id="voiceSelect"></select>
+    </div>
+
+    <div class="field">
+      <label>ความเร็วพูด: <span id="rateVal">1.0</span></label>
+      <input type="range" id="voiceRate" min="0.5" max="1.6" step="0.05" value="1">
+    </div>
+
+    <div class="field">
+      <label>ความสูงเสียง (pitch): <span id="pitchVal">1.0</span></label>
+      <input type="range" id="voicePitch" min="0.5" max="1.6" step="0.05" value="1">
+    </div>
+
+    <button class="add-goal-btn" id="presetUncleBtn" style="margin-bottom:14px;">ลองโทน "น้า/ลุง อบอุ่น ชวนชื่น"</button>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="voiceTestBtn">ทดสอบเสียง</button>
+      <button class="btn-primary" id="voiceSaveBtn">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mascot — walks in from the right when it has something to say -->
+<div class="mascot-walker" id="mascotWalker">
+  <div class="mascot-inner pos-hidden-right" id="mascotInner">
+    <div class="speech-bubble" id="speechBubble">
+      <p class="mascot-eyebrow" id="mascotEyebrow">แจ้งเตือน</p>
+      <p class="mascot-msg" id="mascotMsg">...</p>
+      <div class="mascot-actions">
+        <button class="btn-secondary" id="snoozeBtn">เลื่อน 5 นาที</button>
+        <button class="btn-primary" id="mascotOkBtn">รับทราบ</button>
+      </div>
+    </div>
+    <svg class="mascot-sprite" viewBox="0 0 64 86">
+      <g class="mascot-body">
+        <rect id="legR" x="32" y="62" width="9" height="18" rx="4" fill="#C97A1B"/>
+        <rect id="legL" x="23" y="62" width="9" height="18" rx="4" fill="#C97A1B"/>
+
+        <rect id="armL" x="4" y="38" width="9" height="15" rx="4.5" fill="#F2A623"/>
+        <rect id="armR" x="51" y="34" width="9" height="15" rx="4.5" fill="#F2A623"/>
+
+        <circle cx="32" cy="42" r="22" fill="#FFFBF2" stroke="#F2A623" stroke-width="4"/>
+
+        <line x1="32" y1="22" x2="32" y2="26" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="50" y1="42" x2="46" y2="42" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="32" y1="62" x2="32" y2="58" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="14" y1="42" x2="18" y2="42" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round"/>
+
+        <circle cx="16" cy="18" r="8" fill="#F2A623"/>
+        <circle cx="48" cy="18" r="8" fill="#F2A623"/>
+        <circle cx="16" cy="9" r="2.5" fill="#C97A1B"/>
+        <circle cx="48" cy="9" r="2.5" fill="#C97A1B"/>
+
+        <circle cx="24" cy="40" r="5" fill="#2C2C2A"/>
+        <circle cx="40" cy="40" r="5" fill="#2C2C2A"/>
+        <circle cx="22.3" cy="38.3" r="1.3" fill="#FFFFFF"/>
+        <circle cx="38.3" cy="38.3" r="1.3" fill="#FFFFFF"/>
+        <ellipse cx="18" cy="48" rx="4" ry="2.5" fill="#F4A89A" opacity="0.7"/>
+        <ellipse cx="46" cy="48" rx="4" ry="2.5" fill="#F4A89A" opacity="0.7"/>
+        <path d="M22 50Q32 58 42 50" stroke="#2C2C2A" stroke-width="3" stroke-linecap="round" fill="none"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.0/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.0/firebase-firestore-compat.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// state (kept in memory only — refresh clears it, by design for this tool)
+// ---------------------------------------------------------------------------
+const MODES = {
+  classic: { focus: 25, break: 5 },
+  deep:    { focus: 50, break: 10 },
+  long:    { focus: 90, break: 15 },
+};
+
+let goals = [
+  { id: "g_seed1", title: "ปิดโปรเจกต์ Q3" },
+];
+
+let blocks = [
+  mkBlock("ออกกำลังกาย", "08:00", "09:00", "", "none", "", true),
+  mkBlock("เขียนรายงาน Q3", nowPlus(0), nowPlus(120), "g_seed1", "deep", "", true),
+  mkBlock("ประชุมทีม", nowPlus(125), nowPlus(155), "", "none", "", true),
+  mkBlock("ออกแบบ ui", nowPlus(170), nowPlus(290), "g_seed1", "classic", "", true),
+];
+
+let editingId = null;
+let editingGoalId = null;
+let pickedMode = "none";
+let voiceEnabled = true;
+let snoozeUntil = 0;
+let prevActiveId = null;
+const timerState = {}; // blockId -> { phase, secondsLeft, round, paused }
+
+// -- cloud sync (optional — lets the same data show up on phone + computer) --
+let cloudDb = null;
+let cloudDocRef = null;
+let cloudUnsub = null;
+let cloudConnected = false;
+let cloudPushTimer = null;
+let applyingRemoteUpdate = false;
+const CLOUD_CONFIG_KEY = "timeblock_cloud_config_v1";
+
+const STORAGE_KEY = "timeblock_pomodoro_state_v3";
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ blocks, goals, timerState, prevActiveId }));
+  } catch (e) {
+    // localStorage unavailable (e.g. inside a sandboxed preview) — fall back to in-memory only
+  }
+  queueCloudPush();
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.blocks) && data.blocks.length) {
+      blocks = data.blocks;
+      let migrated = false;
+      blocks.forEach(b => { if (!b.date) { b.date = todayStr(); migrated = true; } });
+      if (Array.isArray(data.goals)) goals = data.goals;
+      if (data.timerState) Object.assign(timerState, data.timerState);
+      if (data.prevActiveId) prevActiveId = data.prevActiveId;
+      if (migrated) saveState();
+      return true;
+    }
+  } catch (e) {
+    // ignore corrupt/unavailable storage, keep default seed data
+  }
+  return false;
+}
+
+function uid() { return "b" + Math.random().toString(36).slice(2, 9); }
+
+function nowPlus(mins) {
+  const d = new Date(Date.now() + mins * 60000);
+  return d.getHours().toString().padStart(2,"0") + ":" + d.getMinutes().toString().padStart(2,"0");
+}
+
+function dateStrFromDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function todayStr() { return dateStrFromDate(new Date()); }
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return dateStrFromDate(d);
+}
+function formatViewDate(dateStr) {
+  const today = todayStr();
+  const d = new Date(dateStr + "T00:00:00");
+  const label = d.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
+  if (dateStr === today) return "วันนี้ · " + label;
+  if (dateStr === addDays(today, 1)) return "พรุ่งนี้ · " + label;
+  if (dateStr === addDays(today, -1)) return "เมื่อวาน · " + label;
+  return label;
+}
+
+function startOfWeek(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDay(); // 0 = Sun .. 6 = Sat
+  const diff = day === 0 ? -6 : 1 - day; // Monday as the start of the week
+  d.setDate(d.getDate() + diff);
+  return dateStrFromDate(d);
+}
+function formatWeekRange(weekStart) {
+  const end = addDays(weekStart, 6);
+  const s = new Date(weekStart + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+  const e = new Date(end + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+  return s + " – " + e;
+}
+
+let viewDate = todayStr();
+let viewMode = "day"; // "day" | "week"
+
+function mkBlock(title, start, end, goalId, mode, details, notify, date) {
+  return { id: uid(), title, start, end, goalId, mode, customFocus: 25, customBreak: 5, details, notify, date: date || todayStr() };
+}
+
+function toMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function modeMinutes(block) {
+  if (block.mode === "custom") return { focus: block.customFocus, break: block.customBreak };
+  return MODES[block.mode] || null;
+}
+
+// ---------------------------------------------------------------------------
+// status + tick engine
+// ---------------------------------------------------------------------------
+function statusOf(block, nowMin) {
+  const today = todayStr();
+  if (block.date < today) return "done";
+  if (block.date > today) return "upcoming";
+  const s = toMinutes(block.start), e = toMinutes(block.end);
+  if (nowMin >= e) return "done";
+  if (nowMin >= s && nowMin < e) return "active";
+  return "upcoming";
+}
+
+function tick() {
+  const now = new Date();
+  document.getElementById("clockNow").textContent =
+    now.getHours().toString().padStart(2,"0") + ":" +
+    now.getMinutes().toString().padStart(2,"0") + ":" +
+    now.getSeconds().toString().padStart(2,"0");
+
+  const frozen = Date.now() < snoozeUntil;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const sorted = [...blocks].sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+  const active = sorted.find(b => statusOf(b, nowMin) === "active");
+
+  if (!frozen && active?.id !== prevActiveId) {
+    if (active) {
+      const mm = modeMinutes(active);
+      timerState[active.id] = mm
+        ? { phase: "focus", round: 1, paused: false, phaseEndsAt: Date.now() + mm.focus * 60000 }
+        : null;
+      if (active.notify) {
+        notify("เปลี่ยนงาน", pick(MSG.blockStart).replace("{title}", active.title));
+      }
+    } else if (prevActiveId) {
+      const prevBlock = blocks.find(b => b.id === prevActiveId);
+      if (prevBlock?.notify) notify("จบงานนี้แล้ว", pick(MSG.allDone));
+    }
+    prevActiveId = active ? active.id : null;
+    saveState();
+  }
+
+  if (!frozen && active) {
+    const mm = modeMinutes(active);
+    const ts = timerState[active.id];
+    if (mm && ts && !ts.paused) {
+      // Walk forward through phase boundaries using real elapsed wall-clock time
+      // (not a decremented counter), so a backgrounded/throttled tab still lands
+      // on the correct phase the moment it's checked again.
+      let transitions = 0;
+      while (Date.now() >= ts.phaseEndsAt && transitions < 500) {
+        if (ts.phase === "focus") {
+          ts.phase = "break";
+          ts.phaseEndsAt += mm.break * 60000;
+        } else {
+          ts.phase = "focus";
+          ts.round++;
+          ts.phaseEndsAt += mm.focus * 60000;
+        }
+        transitions++;
+      }
+      if (transitions === 1 && active.notify) {
+        notify(
+          ts.phase === "break" ? "หมดเวลาโฟกัส" : "พักจบแล้ว",
+          ts.phase === "break"
+            ? pick(MSG.focusEnd).replace("{title}", active.title)
+            : pick(MSG.breakEnd)
+        );
+      } else if (transitions > 1 && active.notify) {
+        notify(
+          "ตอนที่ไม่อยู่",
+          `ระหว่างที่ปิดหน้าจอไป ครบไปแล้ว ${transitions} ช่วง ตอนนี้อยู่ช่วง${ts.phase === "focus" ? "โฟกัส" : "พัก"} รอบที่ ${ts.round}`
+        );
+      }
+      if (transitions > 0) saveState();
+    }
+  }
+
+  render(nowMin);
+}
+
+const MSG = {
+  blockStart: [
+    "มาเริ่ม {title} กันเลย!",
+    "ถึงเวลาของ {title} แล้ว ลุยกันเถอะ",
+    "{title} กำลังจะเริ่มนะ เตรียมตัวให้พร้อม",
+    "เปลี่ยนงานแล้วนะ ตอนนี้ถึงเวลา {title} แล้ว",
+    "หมดเวลางานที่แล้ว มาทำ {title} กันต่อ",
+  ],
+  focusEnd: [
+    "เก่งมาก ทำ {title} มาสักพักแล้ว พักก่อนนะ",
+    "หมดรอบโฟกัสแล้ว ยืดเส้นยืดสายหน่อยไหม",
+    "พักสมองก่อนนะ แล้วค่อยมาต่อ {title}",
+    "หมดเวลาโฟกัสรอบนี้แล้ว เก่งมากที่ตั้งใจทำ",
+    "ครบรอบแล้วครับ พักสักหน่อยก่อนไปต่อ {title}",
+  ],
+  breakEnd: [
+    "พักพอแล้ว ไปโฟกัสกันต่อ",
+    "หมดเวลาพักแล้ว กลับมาลุยกันต่อ",
+    "พร้อมยัง? ไปต่อกันเลย",
+    "พักครบเวลาแล้วนะ มาเริ่มรอบใหม่กันเลย",
+    "หมดเวลาพักแล้วครับ ไปโฟกัสกันต่อดีกว่า",
+  ],
+  allDone: [
+    "จบงานนี้แล้ว เก่งมาก!",
+    "ทำสำเร็จแล้วนะ ไปต่องานถัดไปกันเลย",
+    "หมดเวลาของงานนี้แล้ว ทำได้ดีมากเลย",
+  ],
+};
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function notify(eyebrow, msg) {
+  document.getElementById("mascotEyebrow").textContent = eyebrow;
+  document.getElementById("mascotMsg").textContent = msg;
+  mascotWalkIn(msg);
+  sendSystemNotification(eyebrow, msg);
+}
+
+function sendSystemNotification(title, body) {
+  if (!window.Notification || Notification.permission !== "granted") return;
+  const reg = navigator.serviceWorker?.controller;
+  if (reg) {
+    navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION", title, body });
+  } else {
+    try { new Notification(title, { body }); } catch (e) {}
+  }
+}
+
+const mascotInner = document.getElementById("mascotInner");
+const speechBubble = document.getElementById("speechBubble");
+let mascotAutoHideTimer = null;
+
+function setMascotPos(state, withTransition) {
+  if (!withTransition) mascotInner.classList.add("no-anim");
+  mascotInner.classList.remove("pos-hidden-right", "pos-onstage", "pos-exit-left");
+  mascotInner.classList.add("pos-" + state);
+  if (!withTransition) {
+    void mascotInner.offsetWidth;
+    mascotInner.classList.remove("no-anim");
+  }
+}
+
+function mascotWalkIn(msg) {
+  clearTimeout(mascotAutoHideTimer);
+  speechBubble.classList.remove("show");
+  mascotInner.classList.remove("is-idle");
+  mascotInner.classList.add("is-walking");
+  setMascotPos("onstage", true);
+  mascotInner.addEventListener("transitionend", function onArrive() {
+    mascotInner.removeEventListener("transitionend", onArrive);
+    mascotInner.classList.remove("is-walking");
+    mascotInner.classList.add("is-idle");
+    speechBubble.classList.add("show");
+    if (voiceEnabled) speak(msg);
+    mascotAutoHideTimer = setTimeout(mascotWalkOut, 15000);
+  }, { once: true });
+}
+
+function mascotWalkOut() {
+  clearTimeout(mascotAutoHideTimer);
+  speechBubble.classList.remove("show");
+  mascotInner.classList.remove("is-idle");
+  mascotInner.classList.add("is-walking");
+  setMascotPos("exit-left", true);
+  mascotInner.addEventListener("transitionend", function onLeave() {
+    mascotInner.removeEventListener("transitionend", onLeave);
+    mascotInner.classList.remove("is-walking");
+    setMascotPos("hidden-right", false);
+  }, { once: true });
+  window.speechSynthesis?.cancel();
+}
+
+const VOICE_PREF_KEY = "timeblock_voice_pref_v1";
+
+function loadVoicePref() {
+  try {
+    const raw = localStorage.getItem(VOICE_PREF_KEY);
+    return raw ? JSON.parse(raw) : { voiceURI: "", rate: 1, pitch: 1 };
+  } catch (e) { return { voiceURI: "", rate: 1, pitch: 1 }; }
+}
+function saveVoicePref(pref) {
+  try { localStorage.setItem(VOICE_PREF_KEY, JSON.stringify(pref)); } catch (e) {}
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const pref = loadVoicePref();
+  const voices = window.speechSynthesis.getVoices();
+  const chosen = voices.find(v => v.voiceURI === pref.voiceURI);
+  if (chosen) u.voice = chosen;
+  u.lang = chosen?.lang || "th-TH";
+  u.rate = pref.rate || 1;
+  u.pitch = pref.pitch || 1;
+  window.speechSynthesis.speak(u);
+}
+
+// ---------------------------------------------------------------------------
+// render
+// ---------------------------------------------------------------------------
+function goalProgress(goalId) {
+  const related = blocks.filter(b => b.goalId === goalId);
+  if (!related.length) return { pct: 0, done: 0, total: 0 };
+  const nowMin = currentNowMin();
+  const done = related.filter(b => statusOf(b, nowMin) === "done").length;
+  return { pct: Math.round((done / related.length) * 100), done, total: related.length };
+}
+
+function renderGoals() {
+  const list = document.getElementById("goalsList");
+  if (!goals.length) {
+    list.innerHTML = '<p class="empty">ยังไม่มีเป้าหมาย</p>';
+    return;
+  }
+  list.innerHTML = goals.map(g => {
+    const p = goalProgress(g.id);
+    return `
+      <div class="goal-card" data-goal-id="${g.id}">
+        <div class="goal-top">
+          <span class="goal-title">${escapeHtml(g.title)}</span>
+          <span class="goal-pct">${p.pct}%</span>
+        </div>
+        <div class="goal-track"><div class="goal-fill" style="width:${p.pct}%"></div></div>
+        <p class="goal-meta">${p.total ? `${p.done}/${p.total} time block เสร็จแล้ว` : "ยังไม่มี time block ผูกกับเป้าหมายนี้"}</p>
+      </div>`;
+  }).join("");
+}
+
+function renderWeekList() {
+  const list = document.getElementById("blocksList");
+  const weekStart = startOfWeek(viewDate);
+  const nowMin = currentNowMin();
+  const days = [0,1,2,3,4,5,6].map(i => addDays(weekStart, i));
+
+  list.innerHTML = days.map(d => {
+    const dayBlocks = blocks.filter(b => b.date === d).sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+    const label = new Date(d + "T00:00:00").toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
+    const isToday = d === todayStr();
+    const rows = dayBlocks.length
+      ? dayBlocks.map(b => {
+          const st = statusOf(b, nowMin);
+          const dotColor = st === "done" ? "var(--ink-soft)" : st === "active" ? "var(--focus)" : "var(--rest)";
+          const mm = modeMinutes(b);
+          const ts = timerState[b.id];
+          let liveBadge = "";
+          if (st === "active" && mm && ts) {
+            const secondsLeft = ts.paused
+              ? Math.max(0, Math.round(ts.remainingMs / 1000))
+              : Math.max(0, Math.round((ts.phaseEndsAt - Date.now()) / 1000));
+            const m = Math.floor(secondsLeft / 60), s = secondsLeft % 60;
+            liveBadge = `<span class="week-live">${ts.phase === "focus" ? "โฟกัส" : "พัก"} ${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}</span>`;
+          }
+          return `
+            <div class="week-row" data-jump-date="${d}">
+              <span class="week-dot" style="background:${dotColor}"></span>
+              <span class="week-time">${b.start}</span>
+              <span class="week-title">${escapeHtml(b.title)}</span>
+              ${liveBadge}
+            </div>`;
+        }).join("")
+      : `<p class="week-empty">ไม่มี time block</p>`;
+    return `
+      <div class="week-day ${isToday ? "is-today" : ""}">
+        <div class="week-day-head" data-jump-date="${d}">${escapeHtml(label)}${isToday ? " · วันนี้" : ""}</div>
+        ${rows}
+      </div>`;
+  }).join("");
+}
+
+function render(nowMin) {
+  renderGoals();
+
+  if (viewMode === "week") {
+    document.getElementById("dateLabel").textContent = formatWeekRange(startOfWeek(viewDate));
+    renderWeekList();
+    return;
+  }
+
+  document.getElementById("dateLabel").textContent = formatViewDate(viewDate);
+  const list = document.getElementById("blocksList");
+  const sorted = blocks
+    .filter(b => b.date === viewDate)
+    .sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<p class="empty">ยังไม่มี time block วันนี้</p>';
+    return;
+  }
+
+  list.innerHTML = sorted.map(block => {
+    const status = statusOf(block, nowMin);
+    const mm = modeMinutes(block);
+    const ts = timerState[block.id];
+
+    let timerHtml = "";
+    if (status === "active" && mm && ts) {
+      const totalForPhase = ts.phase === "focus" ? mm.focus * 60 : mm.break * 60;
+      const secondsLeft = ts.paused
+        ? Math.max(0, Math.round(ts.remainingMs / 1000))
+        : Math.max(0, Math.round((ts.phaseEndsAt - Date.now()) / 1000));
+      const pct = Math.max(0, Math.min(1, secondsLeft / totalForPhase));
+      const r = 26, c = 2 * Math.PI * r;
+      const offset = c * (1 - pct);
+      const color = ts.phase === "focus" ? "var(--focus)" : "var(--rest)";
+      const min = Math.floor(secondsLeft / 60), sec = secondsLeft % 60;
+      timerHtml = `
+        <div class="timer-box">
+          <div class="ring-wrap">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--line)" stroke-width="5"/>
+              <circle cx="32" cy="32" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+                stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"/>
+            </svg>
+            <div class="ring-time">${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}</div>
+          </div>
+          <div class="timer-meta">
+            <p>${ts.phase === "focus" ? "กำลังโฟกัส" : "กำลังพัก"} · รอบที่ ${ts.round}</p>
+            <div class="timer-actions">
+              <button data-action="pause" data-id="${block.id}">${ts.paused ? "เล่นต่อ" : "พัก"}</button>
+              <button data-action="skip" data-id="${block.id}">ข้าม</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const goal = goals.find(g => g.id === block.goalId);
+    const tags = (goal || mm) ? `
+      <div class="tags">
+        ${goal ? `<span class="tag">${escapeHtml(goal.title)}</span>` : ""}
+        ${mm ? `<span class="tag">${modeLabel(block)}</span>` : ""}
+      </div>` : "";
+
+    return `
+      <div class="row">
+        <div class="time-col">${block.start}<br>${block.end}</div>
+        <div class="card ${status}">
+          <div class="card-top">
+            <span class="card-title ${status === "done" ? "strike" : ""}">${escapeHtml(block.title)}</span>
+            <div class="icon-btns">
+              <button class="icon-btn" data-action="edit" data-id="${block.id}" title="แก้ไข">✎</button>
+              <button class="icon-btn" data-action="delete" data-id="${block.id}" title="ลบ">✕</button>
+            </div>
+          </div>
+          ${tags}
+          ${block.details ? `<p class="details">${escapeHtml(block.details)}</p>` : ""}
+          ${timerHtml}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function modeLabel(block) {
+  if (block.mode === "custom") return `กำหนดเอง ${block.customFocus}/${block.customBreak}`;
+  if (block.mode === "classic") return "classic 25/5";
+  if (block.mode === "deep") return "deep work 50/10";
+  if (block.mode === "long") return "long focus 90/15";
+  return "";
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+// ---------------------------------------------------------------------------
+// list interactions (pause / skip / edit / delete)
+// ---------------------------------------------------------------------------
+document.getElementById("blocksList").addEventListener("click", (e) => {
+  const jump = e.target.closest("[data-jump-date]");
+  if (jump) {
+    viewDate = jump.dataset.jumpDate;
+    viewMode = "day";
+    document.getElementById("viewModeToggle").textContent = "ดูแบบสัปดาห์";
+    render(currentNowMin());
+    return;
+  }
+
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  const block = blocks.find(b => b.id === id);
+
+  if (action === "pause" && timerState[id]) {
+    const ts = timerState[id];
+    if (!ts.paused) {
+      ts.paused = true;
+      ts.remainingMs = ts.phaseEndsAt - Date.now();
+    } else {
+      ts.paused = false;
+      ts.phaseEndsAt = Date.now() + ts.remainingMs;
+    }
+    saveState();
+    render(currentNowMin());
+  }
+  if (action === "skip" && timerState[id]) {
+    const ts = timerState[id];
+    const mm = modeMinutes(block);
+    if (ts.phase === "focus") {
+      ts.phase = "break";
+      ts.phaseEndsAt = Date.now() + mm.break * 60000;
+    } else {
+      ts.phase = "focus";
+      ts.round++;
+      ts.phaseEndsAt = Date.now() + mm.focus * 60000;
+    }
+    ts.paused = false;
+    saveState();
+    render(currentNowMin());
+  }
+  if (action === "edit") openModal(block);
+  if (action === "delete") {
+    if (confirm(`ลบ "${block.title}" ใช่ไหม?`)) {
+      blocks = blocks.filter(b => b.id !== id);
+      delete timerState[id];
+      saveState();
+      render(currentNowMin());
+    }
+  }
+});
+
+function currentNowMin() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+// ---------------------------------------------------------------------------
+// add / edit modal
+// ---------------------------------------------------------------------------
+const blockOverlay = document.getElementById("blockOverlay");
+
+function populateGoalSelect(selectedId) {
+  const sel = document.getElementById("f_goalId");
+  sel.innerHTML = '<option value="">ไม่ผูกกับเป้าหมาย</option>' +
+    goals.map(g => `<option value="${g.id}">${escapeHtml(g.title)}</option>`).join("");
+  sel.value = selectedId || "";
+}
+
+function openModal(block) {
+  editingId = block ? block.id : null;
+  document.getElementById("modalTitle").textContent = block ? "แก้ไข time block" : "time block ใหม่";
+  document.getElementById("f_title").value = block?.title || "";
+  document.getElementById("f_date").value = block?.date || viewDate;
+  document.getElementById("f_start").value = block?.start || nowPlus(0);
+  document.getElementById("f_end").value = block?.end || nowPlus(60);
+  populateGoalSelect(block?.goalId);
+  document.getElementById("f_details").value = block?.details || "";
+  document.getElementById("f_notify").checked = block ? block.notify : true;
+  document.getElementById("f_customFocus").value = block?.customFocus || 25;
+  document.getElementById("f_customBreak").value = block?.customBreak || 5;
+  pickedMode = block?.mode || "none";
+  updateModeGrid();
+  blockOverlay.classList.add("show");
+}
+
+function updateModeGrid() {
+  document.querySelectorAll("#modeGrid button").forEach(b => {
+    b.classList.toggle("picked", b.dataset.mode === pickedMode);
+  });
+  document.getElementById("customRow").style.display = pickedMode === "custom" ? "flex" : "none";
+}
+
+document.getElementById("modeGrid").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  pickedMode = b.dataset.mode;
+  updateModeGrid();
+});
+
+document.getElementById("openAddBtn").addEventListener("click", () => openModal(null));
+document.getElementById("cancelBtn").addEventListener("click", () => blockOverlay.classList.remove("show"));
+
+document.getElementById("prevDayBtn").addEventListener("click", () => {
+  viewDate = addDays(viewDate, viewMode === "week" ? -7 : -1);
+  render(currentNowMin());
+});
+document.getElementById("nextDayBtn").addEventListener("click", () => {
+  viewDate = addDays(viewDate, viewMode === "week" ? 7 : 1);
+  render(currentNowMin());
+});
+document.getElementById("viewModeToggle").addEventListener("click", () => {
+  viewMode = viewMode === "day" ? "week" : "day";
+  document.getElementById("viewModeToggle").textContent = viewMode === "day" ? "ดูแบบสัปดาห์" : "ดูแบบวัน";
+  render(currentNowMin());
+});
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+  const title = document.getElementById("f_title").value.trim();
+  const start = document.getElementById("f_start").value;
+  const end = document.getElementById("f_end").value;
+  if (!title || !start || !end) { alert("กรอกชื่องานและช่วงเวลาด้วยครับ"); return; }
+  if (toMinutes(end) <= toMinutes(start)) { alert("เวลาจบต้องอยู่หลังเวลาเริ่ม"); return; }
+
+  const data = {
+    title, start, end,
+    date: document.getElementById("f_date").value || viewDate,
+    goalId: document.getElementById("f_goalId").value || "",
+    mode: pickedMode,
+    customFocus: Number(document.getElementById("f_customFocus").value) || 25,
+    customBreak: Number(document.getElementById("f_customBreak").value) || 5,
+    details: document.getElementById("f_details").value.trim(),
+    notify: document.getElementById("f_notify").checked,
+  };
+
+  if (editingId) {
+    const idx = blocks.findIndex(b => b.id === editingId);
+    blocks[idx] = { ...blocks[idx], ...data };
+    delete timerState[editingId];
+  } else {
+    blocks.push({ id: uid(), ...data });
+  }
+  saveState();
+  blockOverlay.classList.remove("show");
+  render(currentNowMin());
+});
+
+// ---------------------------------------------------------------------------
+// goal modal
+// ---------------------------------------------------------------------------
+const goalOverlay = document.getElementById("goalOverlay");
+
+function openGoalModal(goal) {
+  editingGoalId = goal ? goal.id : null;
+  document.getElementById("goalModalTitle").textContent = goal ? "แก้ไขเป้าหมาย" : "เป้าหมายใหม่";
+  document.getElementById("g_title").value = goal?.title || "";
+  document.getElementById("goalDeleteBtn").style.display = goal ? "block" : "none";
+  goalOverlay.classList.add("show");
+}
+
+document.getElementById("openGoalAddBtn").addEventListener("click", () => openGoalModal(null));
+document.getElementById("goalCancelBtn").addEventListener("click", () => goalOverlay.classList.remove("show"));
+
+document.getElementById("goalsList").addEventListener("click", (e) => {
+  const card = e.target.closest(".goal-card");
+  if (!card) return;
+  const goal = goals.find(g => g.id === card.dataset.goalId);
+  if (goal) openGoalModal(goal);
+});
+
+document.getElementById("goalSaveBtn").addEventListener("click", () => {
+  const title = document.getElementById("g_title").value.trim();
+  if (!title) { alert("กรอกชื่อเป้าหมายด้วยครับ"); return; }
+  if (editingGoalId) {
+    const g = goals.find(g => g.id === editingGoalId);
+    g.title = title;
+  } else {
+    goals.push({ id: uid(), title });
+  }
+  saveState();
+  goalOverlay.classList.remove("show");
+  render(currentNowMin());
+});
+
+document.getElementById("goalDeleteBtn").addEventListener("click", () => {
+  if (!confirm("ลบเป้าหมายนี้ใช่ไหม? time block ที่ผูกไว้จะไม่ผูกกับเป้าหมายใดๆ")) return;
+  goals = goals.filter(g => g.id !== editingGoalId);
+  blocks.forEach(b => { if (b.goalId === editingGoalId) b.goalId = ""; });
+  saveState();
+  goalOverlay.classList.remove("show");
+  render(currentNowMin());
+});
+
+// ---------------------------------------------------------------------------
+// cloud sync controls
+// ---------------------------------------------------------------------------
+const syncOverlay = document.getElementById("syncOverlay");
+const syncStatusEl = document.getElementById("syncStatus");
+
+function loadCloudConfig() {
+  try {
+    const raw = localStorage.getItem(CLOUD_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function saveCloudConfig(cfg) {
+  try { localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) {}
+}
+
+function clearCloudConfig() {
+  try { localStorage.removeItem(CLOUD_CONFIG_KEY); } catch (e) {}
+}
+
+document.getElementById("openSyncBtn").addEventListener("click", () => {
+  const cfg = loadCloudConfig();
+  ["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId"].forEach(k => {
+    document.getElementById("cfg_" + k).value = cfg?.firebaseConfig?.[k] || "";
+  });
+  document.getElementById("cfg_syncCode").value = cfg?.syncCode || "";
+  document.getElementById("syncDisconnectBtn").style.display = cloudConnected ? "block" : "none";
+  syncOverlay.classList.add("show");
+});
+document.getElementById("syncCancelBtn").addEventListener("click", () => syncOverlay.classList.remove("show"));
+
+document.getElementById("syncConnectBtn").addEventListener("click", () => {
+  const firebaseConfig = {
+    apiKey: document.getElementById("cfg_apiKey").value.trim(),
+    authDomain: document.getElementById("cfg_authDomain").value.trim(),
+    projectId: document.getElementById("cfg_projectId").value.trim(),
+    storageBucket: document.getElementById("cfg_storageBucket").value.trim(),
+    messagingSenderId: document.getElementById("cfg_messagingSenderId").value.trim(),
+    appId: document.getElementById("cfg_appId").value.trim(),
+  };
+  const syncCode = document.getElementById("cfg_syncCode").value.trim();
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !syncCode) {
+    alert("กรอกอย่างน้อย API Key, Project ID และรหัสซิงค์ด้วยครับ");
+    return;
+  }
+  saveCloudConfig({ firebaseConfig, syncCode });
+  connectCloud(firebaseConfig, syncCode);
+  syncOverlay.classList.remove("show");
+});
+
+document.getElementById("syncDisconnectBtn").addEventListener("click", () => {
+  disconnectCloud();
+  clearCloudConfig();
+  syncOverlay.classList.remove("show");
+});
+
+function connectCloud(firebaseConfig, syncCode) {
+  try {
+    if (!window.firebase) {
+      syncStatusEl.textContent = "โหลด Firebase SDK ไม่สำเร็จ (ต้องเปิดผ่านเว็บที่ host จริง ไม่ใช่ไฟล์ในเครื่อง)";
+      return;
+    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    cloudDb = firebase.firestore();
+    cloudDocRef = cloudDb.collection("timeblock_app").doc(syncCode);
+
+    if (cloudUnsub) cloudUnsub();
+    cloudUnsub = cloudDocRef.onSnapshot(
+      (doc) => {
+        cloudConnected = true;
+        syncStatusEl.textContent = `ซิงค์แล้ว · รหัส "${syncCode}"`;
+        if (doc.exists) applyRemoteSnapshot(doc.data());
+        else queueCloudPush(); // first device to connect seeds the cloud doc
+      },
+      (err) => {
+        cloudConnected = false;
+        syncStatusEl.textContent = "เชื่อมต่อซิงค์ไม่สำเร็จ — ตรวจ config / กฎความปลอดภัยของ Firestore";
+        console.error(err);
+      }
+    );
+  } catch (e) {
+    syncStatusEl.textContent = "เชื่อมต่อซิงค์ไม่สำเร็จ: " + e.message;
+    console.error(e);
+  }
+}
+
+function disconnectCloud() {
+  if (cloudUnsub) cloudUnsub();
+  cloudUnsub = null;
+  cloudDocRef = null;
+  cloudConnected = false;
+  syncStatusEl.textContent = "ใช้ข้อมูลแค่เครื่องนี้";
+}
+
+function queueCloudPush() {
+  if (!cloudConnected || !cloudDocRef || applyingRemoteUpdate) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => {
+    cloudDocRef.set({ blocks, goals, timerState, prevActiveId, updatedAt: Date.now() })
+      .catch((e) => console.error("cloud push failed", e));
+  }, 500);
+}
+
+function applyRemoteSnapshot(data) {
+  applyingRemoteUpdate = true;
+  if (Array.isArray(data.blocks)) blocks = data.blocks;
+  blocks.forEach(b => { if (!b.date) b.date = todayStr(); });
+  if (Array.isArray(data.goals)) goals = data.goals;
+  if (data.timerState) { Object.keys(timerState).forEach(k => delete timerState[k]); Object.assign(timerState, data.timerState); }
+  if (data.prevActiveId !== undefined) prevActiveId = data.prevActiveId;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ blocks, goals, timerState, prevActiveId }));
+  } catch (e) {}
+  render(currentNowMin());
+  applyingRemoteUpdate = false;
+}
+
+// ---------------------------------------------------------------------------
+// voice settings
+// ---------------------------------------------------------------------------
+const voiceOverlay = document.getElementById("voiceOverlay");
+const voiceSelect = document.getElementById("voiceSelect");
+const voiceRateInput = document.getElementById("voiceRate");
+const voicePitchInput = document.getElementById("voicePitch");
+
+function populateVoiceSelect() {
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const pref = loadVoicePref();
+  if (!voices.length) {
+    voiceSelect.innerHTML = '<option value="">(เบราว์เซอร์นี้ยังไม่โหลดรายชื่อเสียง — ลองเปิดหน้าต่างนี้อีกครั้ง)</option>';
+    return;
+  }
+  voiceSelect.innerHTML = voices.map(v =>
+    `<option value="${v.voiceURI}">${escapeHtml(v.name)} (${v.lang})</option>`
+  ).join("");
+  if (pref.voiceURI) voiceSelect.value = pref.voiceURI;
+}
+
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.addEventListener("voiceschanged", populateVoiceSelect);
+}
+
+document.getElementById("openVoiceBtn").addEventListener("click", () => {
+  const pref = loadVoicePref();
+  populateVoiceSelect();
+  voiceRateInput.value = pref.rate || 1;
+  voicePitchInput.value = pref.pitch || 1;
+  document.getElementById("rateVal").textContent = (pref.rate || 1).toFixed(2);
+  document.getElementById("pitchVal").textContent = (pref.pitch || 1).toFixed(2);
+  voiceOverlay.classList.add("show");
+});
+
+voiceRateInput.addEventListener("input", (e) => {
+  document.getElementById("rateVal").textContent = Number(e.target.value).toFixed(2);
+});
+voicePitchInput.addEventListener("input", (e) => {
+  document.getElementById("pitchVal").textContent = Number(e.target.value).toFixed(2);
+});
+
+document.getElementById("presetUncleBtn").addEventListener("click", () => {
+  voiceRateInput.value = 0.85;
+  voicePitchInput.value = 0.75;
+  document.getElementById("rateVal").textContent = "0.85";
+  document.getElementById("pitchVal").textContent = "0.75";
+});
+
+document.getElementById("voiceTestBtn").addEventListener("click", () => {
+  saveVoicePref({
+    voiceURI: voiceSelect.value,
+    rate: Number(voiceRateInput.value),
+    pitch: Number(voicePitchInput.value),
+  });
+  speak("สวัสดีครับ นี่คือเสียงตัวอย่างที่ปรับโทนไว้ ลองฟังดูว่าชอบไหม");
+});
+
+document.getElementById("voiceSaveBtn").addEventListener("click", () => {
+  saveVoicePref({
+    voiceURI: voiceSelect.value,
+    rate: Number(voiceRateInput.value),
+    pitch: Number(voicePitchInput.value),
+  });
+  voiceOverlay.classList.remove("show");
+});
+
+// ---------------------------------------------------------------------------
+// mascot popup controls
+// ---------------------------------------------------------------------------
+document.getElementById("mascotOkBtn").addEventListener("click", () => {
+  mascotWalkOut();
+});
+document.getElementById("snoozeBtn").addEventListener("click", () => {
+  snoozeUntil = Date.now() + 5 * 60000;
+  mascotWalkOut();
+});
+
+document.getElementById("voiceToggle").addEventListener("change", (e) => {
+  voiceEnabled = e.target.checked;
+});
+
+document.getElementById("notifBtn").addEventListener("click", async () => {
+  if (!window.Notification) { alert("เบราว์เซอร์นี้ไม่รองรับ Notification API"); return; }
+  const perm = await Notification.requestPermission();
+  document.getElementById("notifBtn").textContent = perm === "granted" ? "เปิดแจ้งเตือนแล้ว" : "เปิดแจ้งเตือนระบบ";
+});
+
+document.getElementById("testBtn").addEventListener("click", () => {
+  notify("ทดสอบ", pick(MSG.focusEnd).replace("{title}", "งานตัวอย่าง"));
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!confirm("ล้างข้อมูล time block และเป้าหมายทั้งหมดใช่ไหม? กู้กลับไม่ได้นะ")) return;
+  blocks = [];
+  goals = [];
+  Object.keys(timerState).forEach(k => delete timerState[k]);
+  saveState();
+  render(currentNowMin());
+});
+
+// ---------------------------------------------------------------------------
+// boot
+// ---------------------------------------------------------------------------
+const loadedFromStorage = loadState();
+render(currentNowMin());
+setInterval(tick, 1000);
+
+const savedCloudConfig = loadCloudConfig();
+if (savedCloudConfig) {
+  connectCloud(savedCloudConfig.firebaseConfig, savedCloudConfig.syncCode);
+}
+
+// The 1s interval can get throttled or fully paused while the tab/app is
+// backgrounded or the screen is locked. These listeners force an immediate
+// resync — using real elapsed time, not a missed tick count — the moment
+// the page is visible again, so the timer and any due notification catch up
+// right away instead of waiting for the browser to resume firing intervals.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") tick();
+});
+window.addEventListener("focus", tick);
+window.addEventListener("pageshow", tick);
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").catch(() => {
+    // Expected to fail on file:// or non-secure origins — the app still
+    // works fully without it, just without the offline cache / SW-routed
+    // notifications.
+  });
+}
+</script>
+</body>
+</html>
