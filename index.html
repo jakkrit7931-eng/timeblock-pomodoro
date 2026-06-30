@@ -273,6 +273,14 @@
     </label>
     <button id="openVoiceBtn" style="margin-left:auto; background:none; border:1px solid #7A4E1455; color:#7A4E14; border-radius:8px; padding:4px 10px; font-size:11px; cursor:pointer;">ตั้งค่าเสียง</button>
   </div>
+
+  <div class="voice-note" style="background:#FBE4E4; color:#7A1F1F;">
+    <label>
+      <input type="checkbox" id="phoneCatchToggle" checked>
+      ด่าตอนจับได้ว่าเล่นมือถือในเวลางาน
+    </label>
+    <button id="openPhoneCatchBtn" style="margin-left:auto; background:none; border:1px solid #7A1F1F55; color:#7A1F1F; border-radius:8px; padding:4px 10px; font-size:11px; cursor:pointer;">ตั้งค่า</button>
+  </div>
 </div>
 
 <!-- Stats modal -->
@@ -477,17 +485,67 @@
       <button class="modal-close" onclick="document.getElementById('voiceOverlay').classList.remove('show')">✕</button>
     </div>
     <div class="modal-body">
-      <p class="goal-meta" style="margin-bottom:14px;">เสียงมาจาก Web Speech API ของเบราว์เซอร์ — เลือกเสียงที่ติดมากับเครื่อง แล้วปรับโทนให้อบอุ่นแบบ "น้า/ลุง" ด้วยแถบด้านล่าง</p>
-      <div class="field"><label>เสียง</label><select id="voiceSelect"></select></div>
-      <div class="field">
-        <label>ความเร็วพูด: <span id="rateVal">1.0</span></label>
-        <input type="range" id="voiceRate" min="0.5" max="1.6" step="0.05" value="1">
+
+      <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px;">ระบบเสียง</label>
+      <div class="mode-grid" id="ttsProviderGrid" style="margin-bottom:14px;">
+        <button type="button" data-provider="webspeech">เสียงเครื่อง (ฟรี)</button>
+        <button type="button" data-provider="elevenlabs">ElevenLabs</button>
+        <button type="button" data-provider="openai">OpenAI TTS</button>
+        <button type="button" data-provider="auto" style="grid-column:span 1;">อัตโนมัติ</button>
       </div>
-      <div class="field">
-        <label>ความสูงเสียง (pitch): <span id="pitchVal">1.0</span></label>
-        <input type="range" id="voicePitch" min="0.5" max="1.6" step="0.05" value="1">
+
+      <div id="webspeechSettings">
+        <div class="field"><label>เสียง (เครื่องนี้)</label><select id="voiceSelect"></select></div>
+        <div class="field">
+          <label>ความเร็วพูด: <span id="rateVal">1.0</span></label>
+          <input type="range" id="voiceRate" min="0.5" max="1.6" step="0.05" value="1">
+        </div>
+        <div class="field">
+          <label>ความสูงเสียง (pitch): <span id="pitchVal">1.0</span></label>
+          <input type="range" id="voicePitch" min="0.5" max="1.6" step="0.05" value="1">
+        </div>
+        <button class="add-goal-btn" id="presetUncleBtn" style="margin-bottom:4px;">ลองโทน "น้า/ลุง อบอุ่น ชวนชื่น"</button>
       </div>
-      <button class="add-goal-btn" id="presetUncleBtn">ลองโทน "น้า/ลุง อบอุ่น ชวนชื่น"</button>
+
+      <div id="elevenlabsSettings" style="display:none;">
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="elevenlabsKey" placeholder="sk_...">
+        </div>
+        <div class="field">
+          <label>Voice ID (ไม่กรอก = ใช้ค่าเริ่มต้น Rachel)</label>
+          <input type="text" id="elevenlabsVoiceId" placeholder="21m00Tcm4TlvDq8ikWAM">
+        </div>
+        <p class="goal-meta" style="margin-bottom:4px;">ฟรี 10,000 ตัวอักษร/เดือน · ไม่ต้องใส่บัตรเครดิต · สมัครได้ที่ elevenlabs.io</p>
+      </div>
+
+      <div id="openaiSettings" style="display:none;">
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="openaiKey" placeholder="sk-...">
+        </div>
+        <div class="field">
+          <label>เสียง</label>
+          <select id="openaiVoice">
+            <option value="alloy">Alloy (เป็นกลาง)</option>
+            <option value="echo">Echo (ชาย)</option>
+            <option value="fable">Fable (อบอุ่น)</option>
+            <option value="onyx" selected>Onyx (เข้มแข็ง)</option>
+            <option value="nova">Nova (หญิง)</option>
+            <option value="shimmer">Shimmer (อ่อนโยน)</option>
+          </select>
+        </div>
+        <p class="goal-meta" style="margin-bottom:4px;">$15 ต่อ 1M ตัวอักษร · ใช้งานปกติ ≈ 500 ตัวอักษร/วัน = ~$0.23/เดือน</p>
+      </div>
+
+      <div id="autoSettings" style="display:none;">
+        <p class="goal-meta">ตรวจสอบก่อนว่าเครื่องมีเสียงไทยไหม ถ้ามีใช้เสียงเครื่องต่อ ถ้าไม่มีจะใช้ ElevenLabs อัตโนมัติ (ต้องกรอก API key ElevenLabs ด้วย)</p>
+        <div class="field">
+          <label>ElevenLabs API Key (สำรอง)</label>
+          <input type="password" id="autoElevenlabsKey" placeholder="sk_...">
+        </div>
+      </div>
+
     </div>
     <div class="modal-foot">
       <div class="modal-actions">
@@ -498,8 +556,52 @@
   </div>
 </div>
 
+<!-- Phone-catch settings -->
+<div class="overlay" id="phoneCatchOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h2>ตั้งค่า "ด่าตอนเล่นมือถือ"</h2>
+      <button class="modal-close" onclick="document.getElementById('phoneCatchOverlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="goal-meta" style="margin-bottom:14px;">เมื่อหยิบมือถือมาเจอแอปนี้ระหว่างที่อยู่ในเวลา time block ตัวละครจะเด้งมาเตือนทันที</p>
+
+      <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px;">โทนการแจ้งเตือน</label>
+      <div class="mode-grid" id="toneGrid" style="margin-bottom:16px;">
+        <button type="button" data-tone="gentle">🟢 อ่อนโยน</button>
+        <button type="button" data-tone="harsh">🔴 โหด/กระตุ้น</button>
+      </div>
+
+      <div class="field">
+        <label>เว้นระยะก่อนเตือนซ้ำ (นาที)</label>
+        <input type="number" id="cooldownInput" min="1" max="60" value="5">
+      </div>
+
+      <div id="harshPhrasesSection">
+        <label style="font-size:12px;color:var(--ink-soft);display:block;margin:6px 0 6px;">
+          ประโยคโทนโหด (ใช้ {title} แทนชื่องาน)
+        </label>
+        <div id="harshPhraseList" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
+        <div class="row2" style="margin-bottom:6px;">
+          <input type="text" id="newHarshPhrase" placeholder="เช่น ไปทำ {title} เดี๋ยวนี้นะ" style="flex:1;">
+        </div>
+        <button class="add-goal-btn" id="addHarshPhraseBtn" style="margin-bottom:4px;">+ เพิ่มประโยค</button>
+        <button class="add-goal-btn" id="resetHarshPhrasesBtn" style="color:var(--ink-soft);">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="modal-actions">
+        <button class="btn-secondary" id="phoneCatchTestBtn">ทดสอบ</button>
+        <button class="btn-primary" id="phoneCatchSaveBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Mascot — walks in from the right when it has something to say -->
 <div class="mascot-walker" id="mascotWalker">
+
   <div class="mascot-inner pos-hidden-right" id="mascotInner">
     <div class="speech-bubble" id="speechBubble">
       <p class="mascot-eyebrow" id="mascotEyebrow">แจ้งเตือน</p>
@@ -847,7 +949,58 @@ const MSG = {
   ],
 };
 
+// Default phrases for "caught on phone during work time" — gentle is used
+// when the harsh tone is off; harsh is the user-requested default bank for
+// the harsh tone (fully editable in settings, see PHONE_CATCH_KEY below).
+const DEFAULT_PHONE_CATCH_GENTLE = [
+  "แอบมาเล่นมือถือเหรอ ตอนนี้ถึงเวลา {title} อยู่นะ กลับไปทำต่อกันเถอะ",
+  "เดี๋ยวๆ ตอนนี้ควรทำ {title} อยู่นะ วางมือถือก่อนดีไหม",
+  "จับได้แล้วนะ ตอนนี้เวลาทำ {title} อยู่ กลับไปลุยกันต่อ",
+];
+const DEFAULT_PHONE_CATCH_HARSH = [
+  "ไอ่สัส กลับไปทำ {title} เดี๋ยวนี้",
+  "หยิบมือถือมาทำไม กลับไปทำ {title} ก่อน",
+  "เวลา {title} อยู่นะเว้ย อย่ามาเล่นมือถือ",
+  "วางมือถือซะ แล้วไปทำ {title} ให้เสร็จ",
+];
+
+const PHONE_CATCH_KEY = "timeblock_phonecatch_v1";
+
+function loadPhoneCatchSettings() {
+  try {
+    const raw = localStorage.getItem(PHONE_CATCH_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { enabled: true, tone: "gentle", cooldownMin: 5, customHarsh: [...DEFAULT_PHONE_CATCH_HARSH] };
+}
+function savePhoneCatchSettings(s) {
+  try { localStorage.setItem(PHONE_CATCH_KEY, JSON.stringify(s)); } catch (e) {}
+}
+
+let lastPhoneCatchAt = 0;
+
+function maybeCatchOnPhone() {
+  const settings = loadPhoneCatchSettings();
+  if (!settings.enabled) return;
+
+  const nowMin = currentNowMin();
+  const today = todayStr();
+  const active = blocks.find(b => b.date === today && statusOf(b, nowMin) === "active");
+  if (!active) return; // no work scheduled right now — leave them alone
+
+  const cooldownMs = (settings.cooldownMin || 5) * 60000;
+  if (Date.now() - lastPhoneCatchAt < cooldownMs) return;
+  lastPhoneCatchAt = Date.now();
+
+  const bank = settings.tone === "harsh"
+    ? (settings.customHarsh && settings.customHarsh.length ? settings.customHarsh : DEFAULT_PHONE_CATCH_HARSH)
+    : DEFAULT_PHONE_CATCH_GENTLE;
+  const msg = pick(bank).replace("{title}", active.title);
+  notify("จับได้คาหนังคาเขา", msg);
+}
+
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 
 const MASCOT_STYLES = {
   clock: `
@@ -979,30 +1132,165 @@ function mascotWalkOut() {
   window.speechSynthesis?.cancel();
 }
 
-const VOICE_PREF_KEY = "timeblock_voice_pref_v1";
+const VOICE_PREF_KEY = "timeblock_voice_pref_v2";
+const ttsAudioCache = new Map(); // text → ArrayBuffer — avoids re-calling API for same phrase
 
 function loadVoicePref() {
   try {
     const raw = localStorage.getItem(VOICE_PREF_KEY);
-    return raw ? JSON.parse(raw) : { voiceURI: "", rate: 1, pitch: 1 };
-  } catch (e) { return { voiceURI: "", rate: 1, pitch: 1 }; }
+    return raw ? JSON.parse(raw) : { provider: "auto", voiceURI: "", rate: 1, pitch: 1, elevenlabsKey: "", elevenlabsVoiceId: "", openaiKey: "", openaiVoice: "onyx", autoElevenlabsKey: "" };
+  } catch (e) { return { provider: "auto", voiceURI: "", rate: 1, pitch: 1, elevenlabsKey: "", elevenlabsVoiceId: "", openaiKey: "", openaiVoice: "onyx", autoElevenlabsKey: "" }; }
 }
 function saveVoicePref(pref) {
   try { localStorage.setItem(VOICE_PREF_KEY, JSON.stringify(pref)); } catch (e) {}
 }
 
-function speak(text) {
-  if (!("speechSynthesis" in window)) return;
+function hasThaiVoice() {
+  if (!("speechSynthesis" in window)) return false;
+  return window.speechSynthesis.getVoices().some(v => v.lang && v.lang.startsWith("th"));
+}
+
+// Browsers suspend AudioContext until a user gesture "unlocks" it. We reuse
+// one shared context and resume it on every test/notify click so playback
+// doesn't silently fail with no error at all.
+let sharedAudioCtx = null;
+function getAudioCtx() {
+  if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return sharedAudioCtx;
+}
+function primeAudio() {
+  try { getAudioCtx().resume(); } catch (e) {}
+}
+document.addEventListener("click", primeAudio, { once: false, capture: true });
+
+// On-screen toast — console.error is invisible to a non-technical user, so
+// TTS failures must surface somewhere they'll actually see them.
+function showToast(msg) {
+  let el = document.getElementById("ttsToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "ttsToast";
+    el.style.cssText = "position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1C2024; color:#fff; padding:10px 16px; border-radius:10px; font-size:12px; max-width:90vw; z-index:999; box-shadow:0 4px 16px rgba(0,0,0,0.25);";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.style.display = "none"; }, 4500);
+}
+
+function speakWebSpeech(text, pref) {
+  if (!("speechSynthesis" in window)) {
+    showToast("เบราว์เซอร์นี้ไม่รองรับ Web Speech เลย ลองใช้ ElevenLabs/OpenAI แทน");
+    return;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) {
+    showToast("เครื่องนี้ไม่มีเสียงพูดติดตั้งเลย (0 เสียง) — ลองสลับไปใช้ ElevenLabs หรือ OpenAI TTS ในตั้งค่าเสียงแทน");
+    return;
+  }
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  const pref = loadVoicePref();
-  const voices = window.speechSynthesis.getVoices();
-  const chosen = voices.find(v => v.voiceURI === pref.voiceURI);
+  const chosen = voices.find(v => v.voiceURI === pref.voiceURI) || voices.find(v => v.lang?.startsWith("th"));
   if (chosen) u.voice = chosen;
   u.lang = chosen?.lang || "th-TH";
   u.rate = pref.rate || 1;
   u.pitch = pref.pitch || 1;
+  u.onerror = (ev) => showToast("พูดไม่สำเร็จ: " + (ev.error || "ไม่ทราบสาเหตุ"));
   window.speechSynthesis.speak(u);
+}
+
+async function speakElevenLabs(text, apiKey, voiceId) {
+  const cacheKey = "el:" + text;
+  try {
+    let buf = ttsAudioCache.get(cacheKey);
+    if (!buf) {
+      const res = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || "21m00Tcm4TlvDq8ikWAM"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "xi-api-key": apiKey },
+          body: JSON.stringify({ text, model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        showToast(`ElevenLabs ผิดพลาด (${res.status}) — เช็ค API key/โควต้า แล้วลองใหม่ · ${body.slice(0, 120)}`);
+        speakWebSpeech(text, loadVoicePref());
+        return;
+      }
+      buf = await res.arrayBuffer();
+      ttsAudioCache.set(cacheKey, buf);
+    }
+    const ctx = getAudioCtx();
+    if (ctx.state === "suspended") await ctx.resume();
+    const decoded = await ctx.decodeAudioData(buf.slice(0));
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(ctx.destination);
+    src.start();
+  } catch (e) {
+    showToast("เล่นเสียง ElevenLabs ไม่สำเร็จ: " + e.message);
+    speakWebSpeech(text, loadVoicePref());
+  }
+}
+
+async function speakOpenAI(text, apiKey, voice) {
+  const cacheKey = "oai:" + voice + ":" + text;
+  try {
+    let buf = ttsAudioCache.get(cacheKey);
+    if (!buf) {
+      const res = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+        body: JSON.stringify({ model: "tts-1", input: text, voice: voice || "onyx" }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        showToast(`OpenAI TTS ผิดพลาด (${res.status}) — เช็ค API key/โควต้า แล้วลองใหม่ · ${body.slice(0, 120)}`);
+        speakWebSpeech(text, loadVoicePref());
+        return;
+      }
+      buf = await res.arrayBuffer();
+      ttsAudioCache.set(cacheKey, buf);
+    }
+    const ctx = getAudioCtx();
+    if (ctx.state === "suspended") await ctx.resume();
+    const decoded = await ctx.decodeAudioData(buf.slice(0));
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(ctx.destination);
+    src.start();
+  } catch (e) {
+    showToast("เล่นเสียง OpenAI ไม่สำเร็จ: " + e.message);
+    speakWebSpeech(text, loadVoicePref());
+  }
+}
+
+function speak(text) {
+  if (!voiceEnabled) { showToast("ปิดเสียงไว้อยู่ — ติ๊กถูก \"พูดด้วยเสียง\" ก่อนถึงจะได้ยิน"); return; }
+  primeAudio();
+  const pref = loadVoicePref();
+  const provider = pref.provider || "auto";
+
+  if (provider === "elevenlabs") {
+    if (!pref.elevenlabsKey) { showToast("ยังไม่ได้กรอก ElevenLabs API key ในตั้งค่าเสียง"); return; }
+    speakElevenLabs(text, pref.elevenlabsKey, pref.elevenlabsVoiceId);
+  } else if (provider === "openai") {
+    if (!pref.openaiKey) { showToast("ยังไม่ได้กรอก OpenAI API key ในตั้งค่าเสียง"); return; }
+    speakOpenAI(text, pref.openaiKey, pref.openaiVoice);
+  } else if (provider === "auto") {
+    if (hasThaiVoice()) {
+      speakWebSpeech(text, pref);
+    } else if (pref.autoElevenlabsKey) {
+      speakElevenLabs(text, pref.autoElevenlabsKey, "");
+    } else {
+      showToast("เครื่องนี้ไม่มีเสียงไทย และยังไม่ได้กรอก ElevenLabs key สำรอง — จะลองพูดด้วยเสียงที่มีอยู่แทนไปก่อน (อาจไม่ใช่ภาษาไทย)");
+      speakWebSpeech(text, pref);
+    }
+  } else {
+    speakWebSpeech(text, pref);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1586,6 +1874,7 @@ const voiceOverlay = document.getElementById("voiceOverlay");
 const voiceSelect = document.getElementById("voiceSelect");
 const voiceRateInput = document.getElementById("voiceRate");
 const voicePitchInput = document.getElementById("voicePitch");
+let pickedProvider = "auto";
 
 function populateVoiceSelect() {
   const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
@@ -1604,6 +1893,23 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.addEventListener("voiceschanged", populateVoiceSelect);
 }
 
+function updateProviderGrid() {
+  document.querySelectorAll("#ttsProviderGrid button").forEach(b => {
+    b.classList.toggle("picked", b.dataset.provider === pickedProvider);
+  });
+  document.getElementById("webspeechSettings").style.display = pickedProvider === "webspeech" ? "block" : "none";
+  document.getElementById("elevenlabsSettings").style.display = pickedProvider === "elevenlabs" ? "block" : "none";
+  document.getElementById("openaiSettings").style.display = pickedProvider === "openai" ? "block" : "none";
+  document.getElementById("autoSettings").style.display = pickedProvider === "auto" ? "block" : "none";
+}
+
+document.getElementById("ttsProviderGrid").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  pickedProvider = b.dataset.provider;
+  updateProviderGrid();
+});
+
 document.getElementById("openVoiceBtn").addEventListener("click", () => {
   const pref = loadVoicePref();
   populateVoiceSelect();
@@ -1611,6 +1917,13 @@ document.getElementById("openVoiceBtn").addEventListener("click", () => {
   voicePitchInput.value = pref.pitch || 1;
   document.getElementById("rateVal").textContent = (pref.rate || 1).toFixed(2);
   document.getElementById("pitchVal").textContent = (pref.pitch || 1).toFixed(2);
+  document.getElementById("elevenlabsKey").value = pref.elevenlabsKey || "";
+  document.getElementById("elevenlabsVoiceId").value = pref.elevenlabsVoiceId || "";
+  document.getElementById("openaiKey").value = pref.openaiKey || "";
+  document.getElementById("openaiVoice").value = pref.openaiVoice || "onyx";
+  document.getElementById("autoElevenlabsKey").value = pref.autoElevenlabsKey || "";
+  pickedProvider = pref.provider || "auto";
+  updateProviderGrid();
   voiceOverlay.classList.add("show");
 });
 
@@ -1628,22 +1941,127 @@ document.getElementById("presetUncleBtn").addEventListener("click", () => {
   document.getElementById("pitchVal").textContent = "0.75";
 });
 
-document.getElementById("voiceTestBtn").addEventListener("click", () => {
-  saveVoicePref({
+function collectVoicePref() {
+  return {
+    provider: pickedProvider,
     voiceURI: voiceSelect.value,
     rate: Number(voiceRateInput.value),
     pitch: Number(voicePitchInput.value),
-  });
-  speak("สวัสดีครับ นี่คือเสียงตัวอย่างที่ปรับโทนไว้ ลองฟังดูว่าชอบไหม");
+    elevenlabsKey: document.getElementById("elevenlabsKey").value.trim(),
+    elevenlabsVoiceId: document.getElementById("elevenlabsVoiceId").value.trim(),
+    openaiKey: document.getElementById("openaiKey").value.trim(),
+    openaiVoice: document.getElementById("openaiVoice").value,
+    autoElevenlabsKey: document.getElementById("autoElevenlabsKey").value.trim(),
+  };
+}
+
+document.getElementById("voiceTestBtn").addEventListener("click", () => {
+  const pref = collectVoicePref();
+  if (pref.provider === "elevenlabs" && !pref.elevenlabsKey) { alert("กรอก ElevenLabs API key ก่อนทดสอบครับ"); return; }
+  if (pref.provider === "openai" && !pref.openaiKey) { alert("กรอก OpenAI API key ก่อนทดสอบครับ"); return; }
+  saveVoicePref(pref);
+  speak("สวัสดีครับ นี่คือเสียงตัวอย่าง ลองฟังดูว่าชอบไหม");
 });
 
 document.getElementById("voiceSaveBtn").addEventListener("click", () => {
-  saveVoicePref({
-    voiceURI: voiceSelect.value,
-    rate: Number(voiceRateInput.value),
-    pitch: Number(voicePitchInput.value),
-  });
+  const pref = collectVoicePref();
+  saveVoicePref(pref);
   voiceOverlay.classList.remove("show");
+});
+
+// ---------------------------------------------------------------------------
+// phone-catch settings ("ด่าตอนเล่นมือถือ")
+// ---------------------------------------------------------------------------
+const phoneCatchOverlay = document.getElementById("phoneCatchOverlay");
+let pickedTone = "gentle";
+let workingHarshPhrases = [];
+
+function renderHarshPhraseList() {
+  const list = document.getElementById("harshPhraseList");
+  if (!workingHarshPhrases.length) {
+    list.innerHTML = '<p class="empty" style="padding:8px 0;">ยังไม่มีประโยค ใช้ค่าเริ่มต้นแทน</p>';
+    return;
+  }
+  list.innerHTML = workingHarshPhrases.map((p, i) => `
+    <div style="display:flex; align-items:center; gap:6px; background:var(--paper); border-radius:8px; padding:6px 10px;">
+      <span style="flex:1; font-size:12px;">${escapeHtml(p)}</span>
+      <button type="button" data-idx="${i}" class="icon-btn" style="font-size:14px;">✕</button>
+    </div>
+  `).join("");
+}
+
+function updateToneGrid() {
+  document.querySelectorAll("#toneGrid button").forEach(b => {
+    b.classList.toggle("picked", b.dataset.tone === pickedTone);
+  });
+  document.getElementById("harshPhrasesSection").style.display = pickedTone === "harsh" ? "block" : "none";
+}
+
+document.getElementById("toneGrid").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  pickedTone = b.dataset.tone;
+  updateToneGrid();
+});
+
+document.getElementById("harshPhraseList").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-idx]");
+  if (!b) return;
+  workingHarshPhrases.splice(Number(b.dataset.idx), 1);
+  renderHarshPhraseList();
+});
+
+document.getElementById("addHarshPhraseBtn").addEventListener("click", () => {
+  const input = document.getElementById("newHarshPhrase");
+  const val = input.value.trim();
+  if (!val) return;
+  workingHarshPhrases.push(val);
+  input.value = "";
+  renderHarshPhraseList();
+});
+
+document.getElementById("resetHarshPhrasesBtn").addEventListener("click", () => {
+  workingHarshPhrases = [...DEFAULT_PHONE_CATCH_HARSH];
+  renderHarshPhraseList();
+});
+
+document.getElementById("openPhoneCatchBtn").addEventListener("click", () => {
+  const s = loadPhoneCatchSettings();
+  pickedTone = s.tone || "gentle";
+  workingHarshPhrases = s.customHarsh && s.customHarsh.length ? [...s.customHarsh] : [...DEFAULT_PHONE_CATCH_HARSH];
+  document.getElementById("cooldownInput").value = s.cooldownMin || 5;
+  updateToneGrid();
+  renderHarshPhraseList();
+  phoneCatchOverlay.classList.add("show");
+});
+
+document.getElementById("phoneCatchToggle").addEventListener("change", (e) => {
+  const s = loadPhoneCatchSettings();
+  s.enabled = e.target.checked;
+  savePhoneCatchSettings(s);
+});
+
+function collectPhoneCatchSettings() {
+  return {
+    enabled: document.getElementById("phoneCatchToggle").checked,
+    tone: pickedTone,
+    cooldownMin: Math.max(1, Number(document.getElementById("cooldownInput").value) || 5),
+    customHarsh: workingHarshPhrases,
+  };
+}
+
+document.getElementById("phoneCatchTestBtn").addEventListener("click", () => {
+  const s = collectPhoneCatchSettings();
+  savePhoneCatchSettings(s);
+  const bank = s.tone === "harsh"
+    ? (s.customHarsh.length ? s.customHarsh : DEFAULT_PHONE_CATCH_HARSH)
+    : DEFAULT_PHONE_CATCH_GENTLE;
+  notify("จับได้คาหนังคาเขา (ทดสอบ)", pick(bank).replace("{title}", "งานตัวอย่าง"));
+});
+
+document.getElementById("phoneCatchSaveBtn").addEventListener("click", () => {
+  savePhoneCatchSettings(collectPhoneCatchSettings());
+  phoneCatchOverlay.classList.remove("show");
 });
 
 // ---------------------------------------------------------------------------
@@ -1741,6 +2159,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 // ---------------------------------------------------------------------------
 const loadedFromStorage = loadState();
 setMascotStyle(loadMascotStyle());
+document.getElementById("phoneCatchToggle").checked = loadPhoneCatchSettings().enabled;
 refreshGamification();
 render(currentNowMin());
 setInterval(tick, 1000);
@@ -1756,10 +2175,10 @@ if (savedCloudConfig) {
 // the page is visible again, so the timer and any due notification catch up
 // right away instead of waiting for the browser to resume firing intervals.
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") tick();
+  if (document.visibilityState === "visible") { tick(); maybeCatchOnPhone(); }
 });
-window.addEventListener("focus", tick);
-window.addEventListener("pageshow", tick);
+window.addEventListener("focus", () => { tick(); maybeCatchOnPhone(); });
+window.addEventListener("pageshow", () => { tick(); maybeCatchOnPhone(); });
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js").catch(() => {
